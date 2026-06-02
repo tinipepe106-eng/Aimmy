@@ -1,7 +1,7 @@
-using Aimmy2.AILogic;
 using Aimmy2.Class;
 using Aimmy2.Controls;
 using Aimmy2.MouseMovementLibraries.GHubSupport;
+using MouseMovementLibraries.MKitSupport;
 using Aimmy2.Other;
 using Aimmy2.Theme;
 using Aimmy2.UILibrary;
@@ -9,7 +9,6 @@ using AimmyWPF.Class;
 using Class;
 using InputLogic;
 using Other;
-using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -68,7 +67,6 @@ namespace Aimmy2
         private ScrollViewer? CurrentScrollViewer;
         public double ActualFOV { get; set; } = 640;
         private double _currentGradientAngle;
-        private bool _performanceHelperOpen;
 
         // Menu names constant
         private static readonly string[] MenuNames = { "AimMenu", "ModelMenu", "SettingsMenu", "AboutMenu" };
@@ -354,9 +352,6 @@ namespace Aimmy2
 
         private void InitializeFileManager(ModelMenuControl modelMenu)
         {
-            FileManager.ModelLoaded -= OnModelLoaded;
-            FileManager.ModelLoaded += OnModelLoaded;
-
             if (_fileManager == null)
             {
                 _fileManager = new Lazy<FileManager>(() => new FileManager(
@@ -373,220 +368,6 @@ namespace Aimmy2
                 {
                 }
             }
-        }
-
-        private void OnModelLoaded(AIManager manager)
-        {
-            if (!Dispatcher.CheckAccess())
-            {
-                Dispatcher.Invoke(() => OnModelLoaded(manager));
-                return;
-            }
-
-            if (!PerformanceHelperState.ShouldPrompt())
-            {
-                return;
-            }
-
-            ShowPerformanceHelper(manager, PerformanceHelperWindow.LaunchMode.CompactPrompt);
-        }
-
-        internal void ShowPerformanceHelper()
-        {
-            if (!Dispatcher.CheckAccess())
-            {
-                Dispatcher.Invoke(ShowPerformanceHelper);
-                return;
-            }
-
-            var manager = FileManager.AIManager;
-            if (manager == null || !manager.IsLoaded)
-            {
-                LogManager.Log(LogManager.LogLevel.Warning, "Load a model before opening the Performance Helper.", true, 3000);
-                return;
-            }
-
-            ShowPerformanceHelper(manager, PerformanceHelperWindow.LaunchMode.FullHelper);
-        }
-
-        private void ShowPerformanceHelper(AIManager manager, PerformanceHelperWindow.LaunchMode launchMode)
-        {
-            if (_performanceHelperOpen ||
-                !ReferenceEquals(FileManager.AIManager, manager) ||
-                !manager.IsLoaded)
-            {
-                return;
-            }
-
-            _performanceHelperOpen = true;
-            try
-            {
-                var helper = new PerformanceHelperWindow(this, manager, launchMode)
-                {
-                    Owner = this
-                };
-                helper.ShowDialog();
-            }
-            finally
-            {
-                _performanceHelperOpen = false;
-            }
-        }
-
-        internal async Task<bool> ChangeImageSizeAsync(string newSize)
-        {
-            if (string.IsNullOrWhiteSpace(newSize))
-                return false;
-
-            newSize = newSize.Trim();
-            if (!int.TryParse(newSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out int requestedSize))
-                return false;
-
-            await FileManager.ModelOperationLock.WaitAsync();
-            FileManager.CurrentlyLoadingModel = true;
-            string? previousSize = null;
-            string? loadedModel = null;
-            string? modelPath = null;
-
-            try
-            {
-                if (FileManager.AIManager == null || Dictionary.lastLoadedModel == "N/A")
-                {
-                    Dictionary.dropdownState["Image Size"] = newSize;
-                    SettingsMenuControlInstance?.UpdateImageSizeDropdown(newSize);
-                    LogManager.Log(LogManager.LogLevel.Info, $"Image size set to {newSize}x{newSize} (no model loaded)", true, 2000);
-                    return true;
-                }
-
-                previousSize = Dictionary.dropdownState["Image Size"];
-                loadedModel = Dictionary.lastLoadedModel;
-                modelPath = Path.Combine("bin/models", loadedModel);
-                AIManager managerToReplace = FileManager.AIManager;
-                LogManager.Log(LogManager.LogLevel.Info, $"Image size changing to {newSize}");
-
-                managerToReplace.RequestSizeChange(requestedSize);
-                await Task.Delay(100);
-
-                FileManager.AIManager = null;
-                managerToReplace.Dispose();
-
-                Dictionary.dropdownState["Image Size"] = newSize;
-
-                var manager = new AIManager(modelPath);
-                bool loaded = await manager.InitializationTask;
-
-                if (loaded)
-                {
-                    FileManager.AIManager = manager;
-                    Dictionary.lastLoadedModel = loadedModel;
-                    string actualSize = AimSettings.ImageSize.ToString(CultureInfo.InvariantCulture);
-                    Dictionary.dropdownState["Image Size"] = actualSize;
-                    SettingsMenuControlInstance?.UpdateImageSizeDropdown(actualSize);
-
-                    if (actualSize == newSize)
-                    {
-                        LogManager.Log(LogManager.LogLevel.Info, $"Successfully changed image size to {actualSize}x{actualSize}", true, 2000);
-                        return true;
-                    }
-
-                    LogManager.Log(
-                        LogManager.LogLevel.Warning,
-                        $"Model loaded at {actualSize}x{actualSize}; requested {newSize}x{newSize} was not applied.",
-                        true,
-                        5000);
-                    return false;
-                }
-
-                manager.Dispose();
-                FileManager.AIManager = null;
-                Dictionary.dropdownState["Image Size"] = previousSize;
-                SettingsMenuControlInstance?.UpdateImageSizeDropdown(previousSize);
-                LogManager.Log(LogManager.LogLevel.Error, $"Model could not reload at {newSize}x{newSize}. Restoring {previousSize}x{previousSize}.", true, 5000);
-
-                var restoredManager = new AIManager(modelPath);
-                if (await restoredManager.InitializationTask)
-                {
-                    FileManager.AIManager = restoredManager;
-                    Dictionary.lastLoadedModel = loadedModel;
-                    string actualSize = AimSettings.ImageSize.ToString(CultureInfo.InvariantCulture);
-                    Dictionary.dropdownState["Image Size"] = actualSize;
-                    SettingsMenuControlInstance?.UpdateImageSizeDropdown(actualSize);
-                }
-                else
-                {
-                    restoredManager.Dispose();
-                    FileManager.AIManager = null;
-                    Dictionary.lastLoadedModel = "N/A";
-                }
-                return false;
-            }
-            catch (Exception ex)
-            {
-                if (!string.IsNullOrWhiteSpace(previousSize))
-                {
-                    Dictionary.dropdownState["Image Size"] = previousSize;
-                    SettingsMenuControlInstance?.UpdateImageSizeDropdown(previousSize);
-                }
-
-                LogManager.Log(LogManager.LogLevel.Error, $"Error changing image size: {ex.Message}", true, 5000);
-                if (FileManager.AIManager == null &&
-                    !string.IsNullOrWhiteSpace(modelPath) &&
-                    File.Exists(modelPath))
-                {
-                    try
-                    {
-                        var restoredManager = new AIManager(modelPath);
-                        if (await restoredManager.InitializationTask)
-                        {
-                            FileManager.AIManager = restoredManager;
-                            if (!string.IsNullOrWhiteSpace(loadedModel))
-                            {
-                                Dictionary.lastLoadedModel = loadedModel;
-                            }
-
-                            string actualSize = AimSettings.ImageSize.ToString(CultureInfo.InvariantCulture);
-                            Dictionary.dropdownState["Image Size"] = actualSize;
-                            SettingsMenuControlInstance?.UpdateImageSizeDropdown(actualSize);
-                        }
-                        else
-                        {
-                            restoredManager.Dispose();
-                            FileManager.AIManager = null;
-                            Dictionary.lastLoadedModel = "N/A";
-                        }
-                    }
-                    catch
-                    {
-                        Dictionary.lastLoadedModel = "N/A";
-                    }
-                }
-
-                return false;
-            }
-            finally
-            {
-                FileManager.CurrentlyLoadingModel = false;
-                FileManager.ModelOperationLock.Release();
-            }
-        }
-
-        internal async Task<bool> ApplyPerformanceRecommendationAsync(PerformanceRecommendation recommendation)
-        {
-            if (recommendation.CanChangeImageSize &&
-                recommendation.SuggestedImageSize != AimSettings.ImageSize)
-            {
-                bool changed = await ChangeImageSizeAsync(recommendation.SuggestedImageSize.ToString());
-                if (!changed)
-                    return false;
-            }
-
-            Dictionary.sliderSettings["AI FPS Limit"] = recommendation.SuggestedFpsLimit;
-            if (uiManager.S_AIFpsLimit != null)
-            {
-                uiManager.S_AIFpsLimit.Slider.Value = recommendation.SuggestedFpsLimit;
-            }
-
-            return true;
         }
 
         #endregion
@@ -647,6 +428,9 @@ namespace Aimmy2
             {
                 LGMouse.Close();
             }
+
+            if (method?.ToString() == "MKit (Arduino)")
+                MKitMouse.Close();
         }
 
         private void SaveAllConfigurations()
@@ -1093,7 +877,8 @@ namespace Aimmy2
                     ["SendInput"] = 1,
                     ["LG HUB"] = 2,
                     ["Razer Synapse (Require Razer Peripheral)"] = 3,
-                    ["ddxoft Virtual Input Driver"] = 4
+                    ["ddxoft Virtual Input Driver"] = 4,
+                    ["MKit (Arduino)"] = 5
                 }),
                 (uiManager.D_ScreenCaptureMethod, "Screen Capture Method", new Dictionary<string, int>
                 {
@@ -1139,14 +924,8 @@ namespace Aimmy2
             UpdateAimConfigSliderVisibility();
         }
 
-        internal static void ApplyConfigLoadDefaults(IDictionary<string, dynamic> sliderSettings)
-        {
-            sliderSettings["AI FPS Limit"] = 0;
-        }
-
         private void LoadConfig(string path = "bin\\configs\\Default.cfg", bool loading_from_configlist = false)
         {
-            ApplyConfigLoadDefaults(Dictionary.sliderSettings);
             SaveDictionary.LoadJSON(Dictionary.sliderSettings, path);
             SaveDictionary.LoadJSON(Dictionary.dropdownState, path);
 
@@ -1185,7 +964,6 @@ namespace Aimmy2
             {
                 ("FOV Size", uiManager.S_FOVSize, 640.0),
                 ("Mouse Sensitivity (+/-)", uiManager.S_MouseSensitivity, 0.8),
-                ("AI FPS Limit", uiManager.S_AIFpsLimit, 0.0),
                 ("Mouse Jitter", uiManager.S_MouseJitter, 0.0),
                 ("Sticky Aim Threshold", uiManager.S_StickyAimThreshold, 50),
                 ("EMA Smoothening", uiManager.S_EMASmoothing, 0.5),
@@ -1235,17 +1013,8 @@ namespace Aimmy2
                     ["SendInput"] = 1,
                     ["LG HUB"] = 2,
                     ["Razer Synapse (Require Razer Peripheral)"] = 3,
-                    ["ddxoft Virtual Input Driver"] = 4
-                }),
-
-                ("Image Size", uiManager.D_ImageSize, new Dictionary<string, int>
-                {
-                    ["640"] = 0,
-                    ["512"] = 1,
-                    ["416"] = 2,
-                    ["320"] = 3,
-                    ["256"] = 4,
-                    ["160"] = 5
+                    ["ddxoft Virtual Input Driver"] = 4,
+                    ["MKit (Arduino)"] = 5
                 }),
 
                 ("Movement Path", uiManager.D_MovementPath, new Dictionary<string, int>
