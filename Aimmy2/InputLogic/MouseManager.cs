@@ -4,6 +4,7 @@ using Class;
 using MouseMovementLibraries.ddxoftSupport;
 using MouseMovementLibraries.RazerSupport;
 using MouseMovementLibraries.SendInputSupport;
+using MouseMovementLibraries.MKitSupport;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
@@ -35,7 +36,7 @@ namespace InputLogic
         // Cleanup
         private static (Action down, Action up) GetMouseActions()
         {
-            string mouseMovementMethod = AimSettings.MouseMovementMethod;
+            string mouseMovementMethod = Dictionary.dropdownState["Mouse Movement Method"];
             Action mouseDownAction;
             Action mouseUpAction;
 
@@ -57,6 +58,10 @@ namespace InputLogic
                     mouseDownAction = () => DdxoftMain.ddxoftInstance.btn!(1);
                     mouseUpAction = () => DdxoftMain.ddxoftInstance.btn(2);
                     break;
+                case "MKit (Arduino)":
+                    mouseDownAction = () => MKitMouse.mouse_down();
+                    mouseUpAction = () => MKitMouse.mouse_up();
+                    break;
                 default:
                     mouseDownAction = () => mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
                     mouseUpAction = () => mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
@@ -76,9 +81,9 @@ namespace InputLogic
             }
 
 
-            if (AimSettings.SprayMode)
+            if (Dictionary.toggleState["Spray Mode"])
             {
-                if (AimSettings.CursorCheck)
+                if (Dictionary.toggleState["Cursor Check"])
                 {
                     Point mousePos = WinAPICaller.GetCursorPosition();
 
@@ -95,7 +100,7 @@ namespace InputLogic
 
             // Single click logic if spray mode off
             int timeSinceLastClick = (int)(DateTime.UtcNow - LastClickTime).TotalMilliseconds;
-            int triggerDelayMilliseconds = AimSettings.AutoTriggerDelayMilliseconds;
+            int triggerDelayMilliseconds = (int)(Dictionary.sliderSettings["Auto Trigger Delay"] * 1000);
             const int clickDelayMilliseconds = 20;
 
             if (timeSinceLastClick < triggerDelayMilliseconds && LastClickTime != DateTime.MinValue)
@@ -150,7 +155,7 @@ namespace InputLogic
 
             double aspectRatioCorrection = ScreenWidth / ScreenHeight;
 
-            int MouseJitter = AimSettings.MouseJitter;
+            int MouseJitter = (int)Dictionary.sliderSettings["Mouse Jitter"];
             int jitterX = MouseRandom.Next(-MouseJitter, MouseJitter);
             int jitterY = MouseRandom.Next(-MouseJitter, MouseJitter);
 
@@ -158,27 +163,27 @@ namespace InputLogic
             Point end = new(targetX, targetY);
             Point newPosition = new Point(0, 0);
 
-            switch (AimSettings.MovementPath)
+            switch (Dictionary.dropdownState["Movement Path"])
             {
                 case "Cubic Bezier":
                     Point control1 = new Point(start.X + (end.X - start.X) / 3, start.Y + (end.Y - start.Y) / 3);
                     Point control2 = new Point(start.X + 2 * (end.X - start.X) / 3, start.Y + 2 * (end.Y - start.Y) / 3);
-                    newPosition = MovementPaths.CubicBezier(start, end, control1, control2, 1 - AimSettings.MouseSensitivity);
+                    newPosition = MovementPaths.CubicBezier(start, end, control1, control2, 1 - Dictionary.sliderSettings["Mouse Sensitivity (+/-)"]);
                     break;
                 case "Linear":
-                    newPosition = MovementPaths.Lerp(start, end, 1 - AimSettings.MouseSensitivity);
+                    newPosition = MovementPaths.Lerp(start, end, 1 - Dictionary.sliderSettings["Mouse Sensitivity (+/-)"]);
                     break;
                 case "Exponential":
-                    newPosition = MovementPaths.Exponential(start, end, 1 - (AimSettings.MouseSensitivity - 0.2), 3.0);
+                    newPosition = MovementPaths.Exponential(start, end, 1 - (Dictionary.sliderSettings["Mouse Sensitivity (+/-)"] - 0.2), 3.0);
                     break;
                 case "Adaptive":
-                    newPosition = MovementPaths.Adaptive(start, end, 1 - AimSettings.MouseSensitivity);
+                    newPosition = MovementPaths.Adaptive(start, end, 1 - Dictionary.sliderSettings["Mouse Sensitivity (+/-)"]);
                     break;
                 case "Perlin Noise":
-                    newPosition = MovementPaths.PerlinNoise(start, end, 1 - AimSettings.MouseSensitivity, 20, 0.5);
+                    newPosition = MovementPaths.PerlinNoise(start, end, 1 - Dictionary.sliderSettings["Mouse Sensitivity (+/-)"], 20, 0.5);
                     break;
                 default:
-                    newPosition = MovementPaths.Lerp(start, end, 1 - AimSettings.MouseSensitivity);
+                    newPosition = MovementPaths.Lerp(start, end, 1 - Dictionary.sliderSettings["Mouse Sensitivity (+/-)"]);
                     break;
             }
 
@@ -196,7 +201,7 @@ namespace InputLogic
             newPosition.X += jitterX;
             newPosition.Y += jitterY;
 
-            switch (AimSettings.MouseMovementMethod)
+            switch (Dictionary.dropdownState["Mouse Movement Method"])
             {
                 case "SendInput":
                     SendInputMouse.SendMouseCommand(MOUSEEVENTF_MOVE, newPosition.X, newPosition.Y);
@@ -214,6 +219,10 @@ namespace InputLogic
                     DdxoftMain.ddxoftInstance.movR!(newPosition.X, newPosition.Y);
                     break;
 
+                case "MKit (Arduino)":
+                    MKitMouse.Move(newPosition.X, newPosition.Y);
+                    break;
+
                 default:
                     mouse_event(MOUSEEVENTF_MOVE, (uint)newPosition.X, (uint)newPosition.Y, 0, 0);
                     break;
@@ -222,7 +231,7 @@ namespace InputLogic
             previousX = newPosition.X;
             previousY = newPosition.Y;
 
-            if (!AimSettings.AutoTrigger)
+            if (!Dictionary.toggleState["Auto Trigger"])
             {
                 ResetSprayState();
             }
