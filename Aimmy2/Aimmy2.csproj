@@ -1,142 +1,61 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup Label="Globals" Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Microsoft_AI_DirectML_SkipDebugLayerCopy>True</Microsoft_AI_DirectML_SkipDebugLayerCopy>
-    <Microsoft_AI_DirectML_SkipLibraryCopy>False</Microsoft_AI_DirectML_SkipLibraryCopy>
-  </PropertyGroup>
-
-  <PropertyGroup Label="Globals" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Microsoft_AI_DirectML_SkipDebugLayerCopy>True</Microsoft_AI_DirectML_SkipDebugLayerCopy>
-    <Microsoft_AI_DirectML_SkipLibraryCopy>False</Microsoft_AI_DirectML_SkipLibraryCopy>
-  </PropertyGroup>
-
-  <PropertyGroup Label="Globals" Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Microsoft_AI_DirectML_SkipDebugLayerCopy>True</Microsoft_AI_DirectML_SkipDebugLayerCopy>
-    <Microsoft_AI_DirectML_SkipLibraryCopy>False</Microsoft_AI_DirectML_SkipLibraryCopy>
-  </PropertyGroup>
-
-  <PropertyGroup Label="Globals" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Microsoft_AI_DirectML_SkipDebugLayerCopy>True</Microsoft_AI_DirectML_SkipDebugLayerCopy>
-    <Microsoft_AI_DirectML_SkipLibraryCopy>False</Microsoft_AI_DirectML_SkipLibraryCopy>
-  </PropertyGroup>
-
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A1A2A3A4-B1B2-C3C4-D5E6-F7E8D9C0B1A2}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-    <UseWindowsForms>false</UseWindowsForms>
-    <Platforms>AnyCPU;x64</Platforms>	  <Product></Product>
-    <Title></Title>
-    <AssemblyName>YmmiaV2</AssemblyName>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <SignAssembly>False</SignAssembly>
-    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-  
+    <RootNamespace>Aimmy2</RootNamespace>
+    <AssemblyName>Aimmy2</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Optimize>False</Optimize>
-    <DebugType>none</DebugType>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Optimize>False</Optimize>
-    <DebugType>none</DebugType>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DebugType>none</DebugType>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <DebugType>none</DebugType>
-  </PropertyGroup>
-
   <ItemGroup>
-    <None Include="..\.editorconfig" Link=".editorconfig" />
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.IO.Ports, Version=10.0.0.8, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.IO.Ports.10.0.8\lib\net462\System.IO.Ports.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
   </ItemGroup>
-
   <ItemGroup>
-    <PackageReference Include="AntWpf" Version="1.0.5" />
-    <PackageReference Include="Costura.Fody" Version="6.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Fody" Version="6.9.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="MaterialDesignThemes" Version="5.3.0" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.23.0" />
-    <PackageReference Include="MouseKeyHook" Version="5.7.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="Supercluster.KDTree" Version="1.0.4" />
-    <PackageReference Include="System.Management" Version="10.0.2" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
-    <PackageReference Include="Vortice.Direct3D11" Version="3.8.2" />
-    <PackageReference Include="Vortice.Direct3D12" Version="3.8.2" />
-    <PackageReference Include="Vortice.DirectX" Version="3.8.2" />
-    <PackageReference Include="Vortice.DXGI" Version="3.8.2" />
-    <PackageReference Include="XamlRadialProgressBar" Version="1.0.3" />
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Compile Include="MouseMovementLibraries\MKitSupport\MKitMouse.cs" />
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
-
-	<ItemGroup>
-		<Resource Include="Graphics\Fonts\akony.otf" />
-		<Resource Include="Graphics\Fonts\AtkinsonHyperlegible-Bold.ttf" />
-		<Resource Include="Graphics\Fonts\AtkinsonHyperlegible-BoldItalic.ttf" />
-		<Resource Include="Graphics\Fonts\AtkinsonHyperlegible-Italic.ttf" />
-		<Resource Include="Graphics\Fonts\AtkinsonHyperlegible-Regular.ttf" />
-		<Resource Include="Graphics\Fonts\Font Awesome 6 Free-Regular-400.otf" />
-		<Resource Include="Graphics\Fonts\Font Awesome 6 Free-Solid-900.otf" />
-		<Resource Include="Graphics\Fonts\Font Awesome 6 Brands-Regular-400.otf" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Compile Update="Other\ThemeManager.cs">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Compile>
-	  <Compile Update="Properties\Settings.Designer.cs">
-	    <DesignTimeSharedInput>True</DesignTimeSharedInput>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>Settings.settings</DependentUpon>
-	  </Compile>
-	  <Compile Update="Other\StreamGuardManager.cs">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Compile>
-	  <Compile Update="UILibrary\AFileLocator.xaml.cs">
-	    <SubType>Code</SubType>
-	  </Compile>
-	  <Compile Update="UILibrary\ASpacer.xaml.cs">
-	    <SubType>Code</SubType>
-	  </Compile>
-	  <Compile Update="UILibrary\ASlider.xaml.cs">
-	    <SubType>Code</SubType>
-	  </Compile>
-	  <Compile Update="UILibrary\AColorChanger.xaml.cs">
-	    <SubType>Code</SubType>
-	  </Compile>
-	  <Compile Update="UILibrary\AKeyChanger.xaml.cs">
-	    <SubType>Code</SubType>
-	  </Compile>
-	  <Compile Update="UILibrary\ARectangleBottom.xaml.cs">
-	    <SubType>Code</SubType>
-	  </Compile>
-	  <Compile Update="UILibrary\APButton.xaml.cs">
-	    <SubType>Code</SubType>
-	  </Compile>
-	  <Compile Update="MouseMovementLibraries\GHubSupport\LGDownloader.xaml.cs">
-	    <SubType>Code</SubType>
-	  </Compile>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <None Update="Properties\Settings.settings">
-	    <Generator>SettingsSingleFileGenerator</Generator>
-	    <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-	  </None>
-	</ItemGroup>
-
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
